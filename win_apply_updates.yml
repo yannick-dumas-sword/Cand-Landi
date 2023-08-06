@@ -1,0 +1,25 @@
+---
+- name: Apply Windows updates
+  hosts: windows_vm
+  gather_facts: no
+  tasks:
+    - name: Search and install all approved Windows updates
+      win_updates:
+        state: installed
+        category_names:
+          - CriticalUpdates
+          - SecurityUpdates
+          - UpdateRollups
+          - FeaturePacks
+          - Updates
+      register: updates_result
+
+    - name: Display installed updates (if any)
+      debug:
+        var: updates_result
+      when: updates_result.updated_count > 0
+
+    - name: Reboot if necessary
+      win_reboot:
+      when: updates_result.reboot_required
+...

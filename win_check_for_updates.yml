@@ -1,0 +1,14 @@
+---
+- name: Check for Windows updates
+  hosts: windows_vm
+  gather_facts: no
+
+  tasks:
+    - name: Check for pending Windows updates
+      win_updates:
+        state: searched
+      register: updates_result
+
+    - name: Display the updates
+      debug:
+        var: updates_result
