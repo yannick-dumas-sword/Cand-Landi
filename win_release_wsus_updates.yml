@@ -1,0 +1,19 @@
+---
+- name: Update WSUS Server
+  hosts: wsus_servers
+  gather_facts: no
+
+  tasks:
+  - name: Run PowerShell Script to approve updates on WSUS
+    ansible.windows.win_shell: |
+      $wsus = Get-WsusServer -Name "wsus_server_name" -PortNumber 8530
+      $updates = $wsus.GetUpdates() | Where-Object {$_.IsApproved -eq $false}
+      foreach ($update in $updates) {
+        $update.Approve("AllComputers")
+      }
+    register: shell_output
+
+  - name: Show output
+    debug:
+      var: shell_output.stdout_lines
+...
