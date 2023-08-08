@@ -16,4 +16,3 @@
   - name: Show output
     debug:
       var: shell_output.stdout_lines
-...
