@@ -6,7 +6,7 @@
   tasks:
   - name: Run PowerShell Script to approve updates on WSUS
     win_shell: |
-      $wsus = Get-WsusServer -Name "wsus_server_name" -PortNumber 8530
+      $wsus = Get-WsusServer -Name "CLANDIG3-WSUS" -PortNumber 8530
       $updates = $wsus.GetUpdates() | Where-Object {$_.IsApproved -eq $false}
       foreach ($update in $updates) {
         $update.Approve("AllComputers")
