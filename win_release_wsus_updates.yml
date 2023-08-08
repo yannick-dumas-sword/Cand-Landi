@@ -1,6 +1,6 @@
 ---
 - name: Update WSUS Server
-  hosts: wsus_servers
+  hosts: all
   gather_facts: no
 
   tasks:
