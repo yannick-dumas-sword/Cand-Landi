@@ -1,6 +1,6 @@
 ---
 - name: Apply Windows updates
-  hosts: windows_vm
+  hosts: all
   gather_facts: no
   tasks:
     - name: Search and install all approved Windows updates
