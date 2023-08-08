@@ -1,0 +1,20 @@
+---
+- name: Vérifier les VMs Windows en attente de redémarrage
+  hosts: windows_vms
+  tasks:
+    - name: Vérifier si un redémarrage est nécessaire
+      win_reboot:
+        pre_reboot_delay: 0
+        reboot_timeout: 1
+      register: reboot_result
+      ignore_errors: true
+
+    - name: Afficher les VMs nécessitant un redémarrage
+      debug:
+        msg: "{{ ansible_hostname }} nécessite un redémarrage"
+      when: not reboot_result.unreachable
+
+    - name: Marquer la tâche comme échouée pour les VMs nécessitant un redémarrage
+      fail:
+        msg: "{{ ansible_hostname }} nécessite un redémarrage"
+      when: not reboot_result.unreachable
