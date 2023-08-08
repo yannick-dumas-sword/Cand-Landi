@@ -1,0 +1,7 @@
+---
+- name: Éteindre les machines Windows
+  hosts: all  # Assurez-vous d'avoir un groupe "windows" dans votre inventaire.
+  tasks:
+    - name: Éteindre la machine
+      win_shell: |
+        Stop-Computer -Force
