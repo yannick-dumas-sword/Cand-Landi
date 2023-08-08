@@ -1,7 +1,6 @@
 ---
 - name: Mettre à jour Synology NAS
   hosts: all
-  become: yes
   tasks:
     - name: Vérifier s'il y a des mises à jour disponibles
       command: /usr/syno/bin/synoupdate --check
@@ -23,7 +22,6 @@
 
 - name: Attendre que le Synology redémarre
   hosts: synology
-  become: no
   tasks:
     - name: Attendre que SSH soit disponible
       wait_for:
