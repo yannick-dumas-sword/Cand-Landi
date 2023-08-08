@@ -5,7 +5,7 @@
 
   tasks:
   - name: Run PowerShell Script to approve updates on WSUS
-    ansible.windows.win_shell: |
+    win_shell: |
       $wsus = Get-WsusServer -Name "wsus_server_name" -PortNumber 8530
       $updates = $wsus.GetUpdates() | Where-Object {$_.IsApproved -eq $false}
       foreach ($update in $updates) {
