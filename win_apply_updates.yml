@@ -19,7 +19,6 @@
         var: updates_result
       when: updates_result.updated_count > 0
 
-    - name: Reboot if necessary
-      win_reboot:
-      when: updates_result.reboot_required
-...
+#    - name: Reboot if necessary
+#      win_reboot:
+#      when: updates_result.reboot_required
