@@ -1,0 +1,34 @@
+---
+- name: Mettre à jour Synology NAS
+  hosts: all
+  become: yes
+  tasks:
+    - name: Vérifier s'il y a des mises à jour disponibles
+      command: /usr/syno/bin/synoupdate --check
+      register: check_update
+      changed_when: False
+      failed_when: "'No update available' not in check_update.stdout and 'Update available' not in check_update.stdout"
+
+    - name: Installer les mises à jour si disponibles
+      command: /usr/syno/bin/synoupdate --download
+      when: "'Update available' in check_update.stdout"
+      register: install_update
+
+    - name: Redémarrer le Synology si nécessaire
+      command: reboot
+      when: "'Update available' in check_update.stdout"
+      async: 300
+      poll: 0
+      ignore_errors: yes
+
+- name: Attendre que le Synology redémarre
+  hosts: synology
+  become: no
+  tasks:
+    - name: Attendre que SSH soit disponible
+      wait_for:
+        port: 22
+        delay: 10
+        timeout: 300
+      delegate_to: "{{ inventory_hostname }}"
+      when: "'Update available' in check_update.stdout"
