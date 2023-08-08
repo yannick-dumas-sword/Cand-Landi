@@ -1,6 +1,6 @@
 ---
 - name: Vérifier les VMs Windows en attente de redémarrage
-  hosts: windows_vms
+  hosts: all
   tasks:
     - name: Vérifier si un redémarrage est nécessaire
       win_reboot:
