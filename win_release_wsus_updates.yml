@@ -2,6 +2,7 @@
 - name: Update WSUS Server
   hosts: all
   gather_facts: no
+  become: true
 
   tasks:
   - name: Run PowerShell Script to approve updates on WSUS
