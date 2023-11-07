@@ -9,7 +9,7 @@
       $wsus = Get-WsusServer -Name "CLANDI-WSUS" -PortNumber 8530
       $updates = $wsus.GetUpdates() | Where-Object {$_.IsApproved -eq $false}
       foreach ($update in $updates) {
-        $update.Approve("AllComputers")
+        $update.Approve("All Computers")
       }
     register: shell_output
 
