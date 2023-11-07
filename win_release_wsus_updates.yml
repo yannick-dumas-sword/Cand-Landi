@@ -2,13 +2,6 @@
 - name: Update WSUS Server
   hosts: all
   gather_facts: no
-  become: true
-  become_method: runas
-  become_user: "{{ ansible_user }}"
-  vars:
-    ansible_become_method: runas
-    ansible_become_flags: logon_type=new_credentials logon_flags=netcredentials_only
-
 
   tasks:
   - name: Run PowerShell Script to approve updates on WSUS
