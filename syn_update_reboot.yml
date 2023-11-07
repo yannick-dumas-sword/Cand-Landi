@@ -6,24 +6,53 @@
     - name: Check for updates
       command: /usr/syno/sbin/synoupgrade --check
       register: update_check
-      changed_when: false  # This ensures Ansible doesn't report a change for this task
+      changed_when: false
+      failed_when: update_check.rc not in [0, 255]
+      ignore_errors: true
+
+    - name: Log update check result
+      debug:
+        msg: "Update check result: {{ update_check.stdout }}"
+      when: update_check.rc == 255
+
+    - name: Determine if update is available
+      set_fact:
+        update_available: "{{ 'available' in (update_check.stdout | from_json) }}"
+      when: update_check.rc == 0 and update_check.stdout is search("UPGRADE_CHECKNEWDSM")
+
+    - name: Log update availability
+      debug:
+        msg: "Update is available: {{ update_available }}"
+      when: update_available is defined
 
     - name: Start the update if available
       command: /usr/syno/sbin/synoupgrade --start-force
-      when: "'update is available' in update_check.stdout"  # Modify this condition based on the actual output of the check command
+      when: update_available | bool
       register: update_started
+      async: 3600
+      poll: 0
 
-    - name: Wait for Synology to restart (if it updated)
-      wait_for:
-        host: "{{ inventory_hostname }}"
-        port: 22  # or whatever port you're using for SSH
-        delay: 60  # wait 60 seconds before starting to poll
-        timeout: 600  # wait a maximum of 10 minutes for the NAS to come back online
-      when: update_started is changed
+    - name: Wait for update to complete
+      async_status:
+        jid: "{{ update_started.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 30
+      delay: 60
+      when: update_started is defined and update_started.changed
 
-    - name: Reboot Synology for good measure (only if update was started)
-      command: reboot
+    - name: Reboot Synology NAS if updated
+      command: /sbin/reboot
       async: 0
       poll: 0
-      ignore_errors: true
-      when: update_started is changed
+      when: update_started is defined and update_started.changed
+
+    - name: Wait for Synology NAS to come back
+      local_action:
+        module: wait_for
+        host: "{{ ansible_host }}"
+        port: 22  # Adjust the port if you use a different one for SSH
+        state: started
+        delay: 60  # Delay before starting to poll
+        timeout: 600  # Maximum time to wait for the NAS to come back
+      when: update_started is defined and update_started.changed
