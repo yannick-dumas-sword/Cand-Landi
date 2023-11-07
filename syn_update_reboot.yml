@@ -3,35 +3,21 @@
   hosts: all
   become: true
   tasks:
-
+  
     - name: Check for updates
       command: /usr/syno/sbin/synoupgrade --check
       register: update_check
       ignore_errors: true
       changed_when: false
 
-    - name: Set fact for update_check success
+    - name: Determine if there is more than the check string in the output
       set_fact:
-        update_check_success: "{{ update_check.rc == 0 }}"
-      changed_when: false
+        more_than_check_string: "{{ update_check.stdout_lines | length > 1 }}"
+      when: update_check.stdout is search("UPGRADE_CHECKNEWDSM")
 
-    - name: Parse update availability from command output
-      set_fact:
-        update_json: "{{ update_check.stdout | regex_replace('UPGRADE_CHECKNEWDSM\\n', '') | from_json }}"
-      when: 
-        - update_check_success
-        - update_check.stdout is search("Result")
-
-    - name: Set update availability to true or false
-      set_fact:
-        update_available: "{{ update_json.available }}"
-      when: 
-        - update_check_success
-        - update_check.stdout is search("Result")
-
-    - name: Start the update if available
+    - name: Start the update if more information is present
       command: /usr/syno/sbin/synoupgrade --start-force
-      when: update_available | default(false) | bool
+      when: more_than_check_string | default(false) | bool
       register: update_started
       ignore_errors: true
 
