@@ -4,39 +4,41 @@
   become: true
   tasks:
 
-    - name: Check for updates and parse output
+    - name: Check for updates
       command: /usr/syno/sbin/synoupgrade --check
       register: update_check
+      ignore_errors: true
       changed_when: false
 
-    - name: Set fact for update availability if JSON is present
+    - name: Set fact for update_check success
       set_fact:
-        update_json: "{{ update_check.stdout.split('\n')[1] | from_json }}"
-      when:
-        - update_check.stdout is search("UPGRADE_CHECKNEWDSM")
+        update_check_success: "{{ update_check.rc == 0 }}"
+      changed_when: false
+
+    - name: Parse update availability from command output
+      set_fact:
+        update_json: "{{ update_check.stdout | regex_replace('UPGRADE_CHECKNEWDSM\\n', '') | from_json }}"
+      when: 
+        - update_check_success
         - update_check.stdout is search("Result")
 
     - name: Set update availability to true or false
       set_fact:
-        update_available: "{{ (update_json | default({'available': false})).available }}"
-      when: update_check.stdout is search("UPGRADE_CHECKNEWDSM")
+        update_available: "{{ update_json.available }}"
+      when: 
+        - update_check_success
+        - update_check.stdout is search("Result")
 
     - name: Start the update if available
       command: /usr/syno/sbin/synoupgrade --start-force
-      when: update_available == true
+      when: update_available | default(false) | bool
       register: update_started
+      ignore_errors: true
 
     - name: Wait for Synology to restart (if it updated)
       wait_for:
         host: "{{ inventory_hostname }}"
-        port: 22  # or whatever port you're using for SSH
-        delay: 60  # wait 60 seconds before starting to poll
-        timeout: 600  # wait a maximum of 10 minutes for the NAS to come back online
-      when: update_started is changed
-
-    - name: Reboot Synology for good measure (only if update was started)
-      command: reboot
-      async: 0
-      poll: 0
-      ignore_errors: true
-      when: update_started is changed
+        port: 22
+        delay: 60
+        timeout: 600
+      when: update_started is defined and update_started.changed
