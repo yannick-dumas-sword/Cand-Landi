@@ -8,8 +8,9 @@
     win_shell: |
       $wsus = Get-WsusServer -Name "CLANDI-WSUS" -PortNumber 8530
       $updates = $wsus.GetUpdates() | Where-Object {$_.IsApproved -eq $false}
+      $targetGroup = $wsus.GetComputerTargetGroups() | Where-Object {$_.Name -eq "All Computers"}
       foreach ($update in $updates) {
-        $update.Approve("All Computers")
+        $update.Approve('Install', $targetGroup)
       }
     register: shell_output
 
