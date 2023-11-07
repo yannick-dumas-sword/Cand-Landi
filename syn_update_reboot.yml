@@ -9,16 +9,22 @@
       register: update_check
       changed_when: false
 
-    - name: Parse update availability from command output
+    - name: Set fact for update availability if JSON is present
       set_fact:
-        update_available: "{{ (update_check.stdout | from_json).available }}"
+        update_json: "{{ update_check.stdout.split('\n')[1] | from_json }}"
+      when:
+        - update_check.stdout is search("UPGRADE_CHECKNEWDSM")
+        - update_check.stdout is search("Result")
+
+    - name: Set update availability to true or false
+      set_fact:
+        update_available: "{{ (update_json | default({'available': false})).available }}"
       when: update_check.stdout is search("UPGRADE_CHECKNEWDSM")
 
     - name: Start the update if available
       command: /usr/syno/sbin/synoupgrade --start-force
       when: update_available == true
       register: update_started
-  
 
     - name: Wait for Synology to restart (if it updated)
       wait_for:
