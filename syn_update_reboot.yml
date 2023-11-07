@@ -3,33 +3,33 @@
   hosts: all
   become: true
   vars:
-    ansible_scp_if_ssh: true  # Use SCP instead of SFTP
+    ansible_scp_if_ssh: true  # Use SCP instead of SFTP to avoid transfer errors
   tasks:
   
     - name: Check for updates
       command: /usr/syno/sbin/synoupgrade --check
       register: update_check
-      ignore_errors: true
       changed_when: false
-      failed_when: 
-        - update_check.rc != 0
-        - update_check.rc != 255  # Assuming 255 is the code for no update available
+      failed_when: update_check.rc not in [0, 255]  # 255 may indicate no update available
 
-    - name: Determine if there is more than the check string in the output
+    - name: Determine if an update is available
       set_fact:
-        more_than_check_string: "{{ update_check.stdout_lines | length > 1 }}"
-      when: update_check.stdout is search("UPGRADE_CHECKNEWDSM")
+        update_available: "{{ 'Available update' in update_check.stdout }}"
+      when: update_check.rc == 0
 
-    - name: Start the update if more information is present
+    - name: Download the update if available
+      command: /usr/syno/sbin/synoupgrade --download
+      when: update_available | default(false) | bool
+      register: update_download
+      changed_when: "'New update has been downloaded' in update_download.stdout"
+
+    - name: Start the update if downloaded
       command: /usr/syno/sbin/synoupgrade --start
-      when: more_than_check_string | default(false) | bool
-      register: update_started
+      when: update_download is defined and update_download.changed
+      register: update_start
+      changed_when: "'Start DSM update' in update_start.stdout"
+      async: 0
+      poll: 0
       ignore_errors: true
 
-    - name: Wait for Synology to restart (if it updated)
-      wait_for:
-        host: "{{ inventory_hostname }}"
-        port: 22
-        delay: 60
-        timeout: 600
-      when: update_started is defined and update_started.changed
+    # Assuming the system will reboot itself after the update, no need for a separate reboot task.
