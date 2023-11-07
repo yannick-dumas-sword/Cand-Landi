@@ -5,7 +5,19 @@
   vars:
     ansible_scp_if_ssh: true  # Use SCP instead of SFTP to avoid transfer errors
   tasks:
-  
+
+    - name: Retrieve list of iSCSI sessions
+      command: iscsiadm -m session
+      register: iscsi_sessions
+      ignore_errors: true
+      changed_when: false
+
+    - name: Disconnect iSCSI LUNs
+      command: iscsiadm -m node -u
+      when: iscsi_sessions.stdout != "" and iscsi_sessions.rc == 0
+      register: lun_disconnect
+      failed_when: lun_disconnect.rc not in [0, 21] # 21 may indicate no sessions found
+
     - name: Check for updates
       command: /usr/syno/sbin/synoupgrade --check
       register: update_check
@@ -31,5 +43,3 @@
       async: 0
       poll: 0
       ignore_errors: true
-
-    # Assuming the system will reboot itself after the update, no need for a separate reboot task.
